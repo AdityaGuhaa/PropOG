@@ -8,7 +8,9 @@ from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 
-load_dotenv()
+# Load .env from the backend directory
+current_dir = os.path.dirname(os.path.abspath(__file__))
+load_dotenv(os.path.join(current_dir, ".env"))
 
 # Initialize FastAPI app
 app = FastAPI(title="PropOG AI Listing Cleaner")
