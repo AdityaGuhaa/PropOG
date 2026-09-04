@@ -203,7 +203,9 @@
             warningMsg.style.display = 'none';
             
             try {
-                const response = await fetch('http://localhost:8000/api/clean', {
+                const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:';
+                const baseUrl = isLocal ? 'http://localhost:8000' : 'https://propog-backend.onrender.com';
+                const response = await fetch(`${baseUrl}/api/clean`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
