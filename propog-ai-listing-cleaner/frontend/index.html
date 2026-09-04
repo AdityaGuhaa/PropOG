@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PropOG Listing Cleaner</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #333;
+            background-color: #f9f9f9;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        textarea {
+            width: 100%;
+            height: 150px;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            resize: vertical;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        button:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+        .warning {
+            background-color: #f39c12;
+            color: white;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 15px 0;
+            text-align: center;
+            font-weight: bold;
+            display: none;
+        }
+        .error {
+            background-color: #e74c3c;
+            color: white;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 15px 0;
+            display: none;
+        }
+        .results {
+            margin-top: 20px;
+            display: none;
+        }
+        .result-section {
+            margin-bottom: 20px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 15px;
+        }
+        .result-section:last-child {
+            border-bottom: none;
+        }
+        .result-section h3 {
+            margin-top: 0;
+            color: #2c3e50;
+            font-size: 18px;
+        }
+        .tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .tag {
+            background-color: #e8f4f8;
+            color: #2980b9;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 14px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+        .data-item {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #eee;
+        }
+        .data-label {
+            font-weight: bold;
+            font-size: 12px;
+            color: #7f8c8d;
+            text-transform: uppercase;
+        }
+        .data-value {
+            font-size: 16px;
+            margin-top: 5px;
+        }
+        .missing-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 5px;
+        }
+        .missing-tag {
+            background-color: #fce4e4;
+            color: #c0392b;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>PropOG Listing Cleaner</h1>
+        <textarea id="raw-listing" placeholder="Paste the raw property listing here..."></textarea>
+        <button id="clean-btn" onclick="cleanListing()">Clean Listing</button>
+        
+        <div id="warning-msg" class="warning">Needs more info</div>
+        <div id="error-msg" class="error"></div>
+        
+        <div id="results" class="results">
+            <div class="result-section">
+                <h3 id="res-headline"></h3>
+                <p id="res-description"></p>
+                <div id="res-tags" class="tags"></div>
+            </div>
+            
+            <div class="result-section">
+                <h3>Structured Data</h3>
+                <div class="grid">
+                    <div class="data-item">
+                        <div class="data-label">BHK</div>
+                        <div class="data-value" id="val-bhk"></div>
+                    </div>
+                    <div class="data-item">
+                        <div class="data-label">Property Type</div>
+                        <div class="data-value" id="val-type"></div>
+                    </div>
+                    <div class="data-item">
+                        <div class="data-label">Locality</div>
+                        <div class="data-value" id="val-locality"></div>
+                    </div>
+                    <div class="data-item">
+                        <div class="data-label">Area (sqft)</div>
+                        <div class="data-value" id="val-area"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="result-section">
+                <h3>Missing Fields</h3>
+                <div id="res-missing" class="missing-tags"></div>
+            </div>
+            
+            <div class="result-section">
+                <h3>Raw JSON</h3>
+                <pre id="res-json" style="background:#f4f4f4; padding:10px; overflow-x:auto; border-radius:4px; font-size:13px;"></pre>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function cleanListing() {
+            const btn = document.getElementById('clean-btn');
+            const textarea = document.getElementById('raw-listing');
+            const resultsDiv = document.getElementById('results');
+            const errorMsg = document.getElementById('error-msg');
+            const warningMsg = document.getElementById('warning-msg');
+            
+            const text = textarea.value.trim();
+            if (!text) return;
+
+            // Reset UI
+            btn.disabled = true;
+            btn.textContent = 'Cleaning...';
+            resultsDiv.style.display = 'none';
+            errorMsg.style.display = 'none';
+            warningMsg.style.display = 'none';
+            
+            try {
+                const response = await fetch('http://localhost:8000/api/clean', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ description: text })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Failed to clean listing');
+                }
+                
+                displayResults(data);
+                
+            } catch (err) {
+                errorMsg.textContent = err.message;
+                errorMsg.style.display = 'block';
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Clean Listing';
+            }
+        }
+        
+        function displayResults(data) {
+            // Text and tags
+            document.getElementById('res-headline').textContent = data.headline;
+            document.getElementById('res-description').textContent = data.short_description;
+            
+            const tagsContainer = document.getElementById('res-tags');
+            tagsContainer.innerHTML = '';
+            data.tags.forEach(tag => {
+                const span = document.createElement('span');
+                span.className = 'tag';
+                span.textContent = tag;
+                tagsContainer.appendChild(span);
+            });
+            
+            // Structured data
+            document.getElementById('val-bhk').textContent = data.bhk !== null ? data.bhk : 'null';
+            document.getElementById('val-type').textContent = data.property_type !== null ? data.property_type : 'null';
+            document.getElementById('val-locality').textContent = data.locality !== null ? data.locality : 'null';
+            document.getElementById('val-area').textContent = data.area_sqft !== null ? data.area_sqft : 'null';
+            
+            // Missing fields
+            const missingContainer = document.getElementById('res-missing');
+            missingContainer.innerHTML = '';
+            if (data.missing_fields.length === 0) {
+                missingContainer.textContent = 'None';
+            } else {
+                data.missing_fields.forEach(field => {
+                    const span = document.createElement('span');
+                    span.className = 'missing-tag';
+                    span.textContent = field;
+                    missingContainer.appendChild(span);
+                });
+            }
+            
+            // Raw JSON
+            document.getElementById('res-json').textContent = JSON.stringify(data, null, 2);
+            
+            // Needs more info warning
+            if (data.missing_fields.length > 2) {
+                document.getElementById('warning-msg').style.display = 'block';
+            }
+            
+            document.getElementById('results').style.display = 'block';
+        }
+    </script>
+</body>
+</html>
