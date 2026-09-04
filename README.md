@@ -11,22 +11,16 @@ HTML/CSS/JS
 
 ## Setup
 
-Navigate to the backend directory and set up a virtual environment:
+Navigate to the project directory and create the conda environment:
 
 ```bash
-cd backend
-python -m venv .venv
-source .venv/bin/activate
-```
-
-For Windows:
-```bash
-.venv\Scripts\activate
+conda create -n propog python pip -y
+conda activate propog
 ```
 
 Install dependencies:
 ```bash
-pip install -r requirements.txt
+pip install -r backend/requirements.txt
 ```
 
 Create a `.env` file in the `backend` directory and add your Gemini API key:
@@ -34,9 +28,9 @@ Create a `.env` file in the `backend` directory and add your Gemini API key:
 GEMINI_API_KEY=your_gemini_api_key_here
 ```
 
-Run the backend server:
+Run the backend server (ensure you are in the root directory or adjust the command):
 ```bash
-uvicorn main:app --reload
+uvicorn backend.main:app --reload
 ```
 
 ## API
